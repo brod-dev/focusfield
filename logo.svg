@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="focusfield logo">
+  <!-- Original geometric mark: an aperture ring framing a focus band -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#1f6f6b" stroke-width="4"/>
+  <!-- six aperture ticks -->
+  <g stroke="#1f6f6b" stroke-width="4" stroke-linecap="round">
+    <line x1="32" y1="8"  x2="32" y2="17"/>
+    <line x1="52.8" y1="20" x2="45" y2="24.5"/>
+    <line x1="52.8" y1="44" x2="45" y2="39.5"/>
+    <line x1="32" y1="56" x2="32" y2="47"/>
+    <line x1="11.2" y1="44" x2="19" y2="39.5"/>
+    <line x1="11.2" y1="20" x2="19" y2="24.5"/>
+  </g>
+  <!-- inner sharp zone -->
+  <circle cx="32" cy="32" r="12" fill="#c8791f"/>
+  <rect x="20" y="30" width="24" height="4" rx="2" fill="#f7f4ef"/>
+</svg>

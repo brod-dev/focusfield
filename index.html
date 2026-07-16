@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>focusfield — depth of field & hyperfocal calculator</title>
+<style>
+  :root{
+    --surface:#f6f2ea;
+    --panel:#fffdf9;
+    --ink:#211e18;
+    --ink-soft:#5c574d;
+    --line:#e3dccd;
+    --line-strong:#cfc6b3;
+    --primary:#1f6f6b;
+    --primary-tint:#e3efed;
+    --accent:#c8791f;
+    --accent-tint:#f6e7d3;
+    --sharp:#3f8f5a;
+    --sharp-tint:#dcecdf;
+    --near:#2f7d8c;
+    --far:#8a5a9c;
+    --warn:#b04a3a;
+    --shadow:0 1px 2px rgba(33,30,24,.05),0 8px 24px rgba(33,30,24,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--surface);
+    color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:32px 24px 72px}
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  header.top img{width:44px;height:44px;display:block}
+  .brand{font-size:26px;font-weight:700;letter-spacing:-.01em}
+  .brand b{color:var(--primary)}
+  .tag{color:var(--ink-soft);font-size:16px;margin:2px 0 26px;max-width:60ch;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:26px;align-items:start}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow)}
+  .panel-body{padding:22px 22px 24px}
+  h2.section{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+    margin:0 0 16px;font-weight:600}
+
+  label{display:block;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:13px;color:var(--ink-soft);margin:0 0 6px;font-weight:600}
+  .field{margin-bottom:18px}
+  select,input[type=number]{
+    width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:10px;
+    background:#fff;color:var(--ink);font-size:16px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  select:focus,input:focus{outline:3px solid var(--primary-tint);border-color:var(--primary)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:9px 16px;font-size:14px;cursor:pointer;color:var(--ink-soft);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .seg button[aria-pressed=true]{background:var(--primary);color:#fff;font-weight:600}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:-8px;margin-bottom:16px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+
+  .headline{display:flex;flex-wrap:wrap;gap:26px;align-items:baseline;margin-bottom:20px}
+  .big{font-size:15px;color:var(--ink-soft);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .big .num{display:block;font-size:34px;color:var(--ink);font-weight:700;line-height:1.1;font-family:inherit}
+  .big.total .num{color:var(--sharp)}
+
+  .scale{margin:6px 0 2px}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:12.5px;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  table.stats{width:100%;border-collapse:collapse;margin-top:14px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14.5px}
+  table.stats td{padding:10px 4px;border-top:1px solid var(--line)}
+  table.stats td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .pill{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px;vertical-align:middle}
+
+  .note{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--accent-tint);
+    color:#7a4a12;font-size:13.5px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .note.hidden{display:none}
+
+  footer{margin-top:34px;color:var(--ink-soft);font-size:13px;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  footer a{color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <img src="logo.svg" alt="focusfield logo"/>
+    <div><div class="brand">focus<b>field</b></div></div>
+  </header>
+  <p class="tag">Know exactly what will be sharp before you press the shutter. Set your camera, lens and subject distance — focusfield maps your depth of field, near and far limits, and hyperfocal distance in real time.</p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-body">
+        <h2 class="section">Your setup</h2>
+        <div class="field">
+          <label for="sensor">Camera / sensor</label>
+          <select id="sensor"></select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="focal">Focal length (mm)</label>
+            <input id="focal" type="number" min="1" step="1" value="50"/>
+          </div>
+          <div class="field">
+            <label for="aperture">Aperture (f/)</label>
+            <select id="aperture"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="dist">Subject distance</label>
+          <input id="dist" type="number" min="0.1" step="0.1" value="3"/>
+        </div>
+        <div class="hint">
+          <span class="seg" role="group" aria-label="Distance units">
+            <button id="u-m" aria-pressed="true">meters</button>
+            <button id="u-ft" aria-pressed="false">feet</button>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-body">
+        <h2 class="section">Depth of field</h2>
+        <div class="headline">
+          <div class="big total"><span class="num" id="r-total">—</span>total depth of field</div>
+          <div class="big"><span class="num" id="r-hyper">—</span>hyperfocal distance</div>
+        </div>
+        <div class="scale">
+          <svg id="viz" viewBox="0 0 720 172" width="100%" height="172" role="img" aria-label="Depth of field scale"></svg>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--primary)"></i>Camera</span>
+          <span><i class="dot" style="background:var(--near)"></i>Near limit</span>
+          <span><i class="dot" style="background:var(--accent)"></i>Subject / focus</span>
+          <span><i class="dot" style="background:var(--far)"></i>Far limit</span>
+          <span><i class="dot" style="background:var(--sharp)"></i>In focus</span>
+        </div>
+        <table class="stats">
+          <tr><td><i class="pill" style="background:var(--near)"></i>Near limit of focus</td><td id="r-near">—</td></tr>
+          <tr><td><i class="pill" style="background:var(--far)"></i>Far limit of focus</td><td id="r-far">—</td></tr>
+          <tr><td><i class="pill" style="background:var(--accent)"></i>In front of subject</td><td id="r-front">—</td></tr>
+          <tr><td><i class="pill" style="background:var(--accent)"></i>Behind subject</td><td id="r-behind">—</td></tr>
+          <tr><td>Circle of confusion</td><td id="r-coc">—</td></tr>
+        </table>
+        <div class="note hidden" id="note"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <strong>focusfield</strong> runs entirely in your browser — no account, no upload, works offline.
+    Distances are measured from the sensor plane.
+  </footer>
+</div>
+
+<script>
+"use strict";
+var SENSORS = [
+  {id:"ff",   name:"Full frame (35mm)",              coc:0.029},
+  {id:"apsc", name:"APS-C — Canon (1.6x)",           coc:0.018},
+  {id:"apsn", name:"APS-C — Nikon/Sony/Fuji (1.5x)", coc:0.019},
+  {id:"m43",  name:"Micro Four Thirds (2.0x)",       coc:0.015},
+  {id:"one",  name:'1" type (2.7x)',                 coc:0.011},
+  {id:"mf",   name:"Medium format (44x33)",          coc:0.045}
+];
+var FSTOPS = [1.4,1.8,2,2.8,3.5,4,5.6,8,11,16,22];
+var SANS = 'font-family="ui-sans-serif,system-ui,sans-serif"';
+var el = function(id){ return document.getElementById(id); };
+var state = { unit:"m" };
+
+(function(){
+  var s = el("sensor");
+  SENSORS.forEach(function(x){
+    var o=document.createElement("option"); o.value=x.id; o.textContent=x.name; s.appendChild(o);
+  });
+  var a = el("aperture");
+  FSTOPS.forEach(function(f){
+    var o=document.createElement("option"); o.value=String(f); o.textContent="f/"+f; a.appendChild(o);
+  });
+  a.value="8";
+})();
+
+function cocFor(id){
+  for(var i=0;i<SENSORS.length;i++){ if(SENSORS[i].id===id) return SENSORS[i].coc; }
+  return 0.029;
+}
+
+// Core optics — internal length unit is millimetres. Returns metres.
+function computeDoF(focal_mm, N, coc_mm, subject_m){
+  var f = focal_mm, s = subject_m*1000;
+  var H = (f*f)/(N*coc_mm) + f;
+  var near = (s*(H-f))/(H+s-2*f);
+  var far, denom = (H-s);
+  if(denom<=0){ far = Infinity; } else { far = (s*(H-f))/denom; }
+  return { hyper:H/1000, near:near/1000, far:(far===Infinity)?Infinity:far/1000, subject:subject_m };
+}
+
+function fmt(m){
+  if(m===Infinity) return "∞";
+  var val = (state.unit==="ft")? m*3.28084 : m;
+  var unit = (state.unit==="ft")? "ft":"m";
+  var digits = (Math.abs(val)<10)?2:(Math.abs(val)<100?1:0);
+  return val.toFixed(digits)+" "+unit;
+}
+function fmtSmall(m){
+  if(m===Infinity) return "∞";
+  if(state.unit==="ft"){
+    var inch = m*39.3701;
+    if(Math.abs(inch)<24) return inch.toFixed(1)+" in";
+    return (m*3.28084).toFixed(2)+" ft";
+  }
+  if(Math.abs(m)<1) return (m*100).toFixed(1)+" cm";
+  return m.toFixed(2)+" m";
+}
+
+function draw(res){
+  var W=720, pad=52, x2=W-pad;
+  var parts=[];
+  var front = res.subject - res.near;
+  var behind = (res.far===Infinity)? Infinity : (res.far - res.subject);
+
+  // (1) true-scale context strip
+  var cy=34;
+  var maxD = (res.far===Infinity)? Math.max(res.subject*2.2, res.near*3)
+                                 : Math.max(res.far*1.1, res.subject*1.12);
+  function CX(m){ return pad + (Math.min(m,maxD)/maxD)*(x2-pad); }
+  var nX=CX(res.near), sX=CX(res.subject), fX=(res.far===Infinity)? x2 : CX(res.far);
+  parts.push('<line x1="'+pad+'" y1="'+cy+'" x2="'+x2+'" y2="'+cy+'" stroke="var(--line-strong)" stroke-width="2"/>');
+  parts.push('<rect x="'+nX+'" y="'+(cy-8)+'" width="'+Math.max(3,fX-nX)+'" height="16" rx="4" fill="var(--sharp)" opacity="0.9"/>');
+  if(res.far===Infinity){
+    parts.push('<polygon points="'+x2+','+(cy-8)+' '+(x2+13)+','+cy+' '+x2+','+(cy+8)+'" fill="var(--sharp)"/>');
+    parts.push('<text x="'+(x2+16)+'" y="'+(cy+4)+'" font-size="12" fill="var(--sharp)" '+SANS+'>&#8734;</text>');
+  }
+  parts.push('<circle cx="'+pad+'" cy="'+cy+'" r="6" fill="var(--primary)"/>');
+  parts.push('<text x="'+pad+'" y="'+(cy+22)+'" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)" '+SANS+'>camera</text>');
+  parts.push('<circle cx="'+sX+'" cy="'+cy+'" r="6" fill="var(--accent)"/>');
+  var subAnchor = (sX>x2-70)?'end':(sX<pad+70?'start':'middle');
+  parts.push('<text x="'+sX+'" y="'+(cy-14)+'" text-anchor="'+subAnchor+'" font-size="11.5" fill="var(--accent)" font-weight="600" '+SANS+'>subject '+fmt(res.subject)+'</text>');
+
+  // (2) zoomed focus band (near -> far), split at subject
+  var by=104, bh=34, bx1=pad, bx2=x2;
+  var fF=front, bB=(behind===Infinity)? front*4 : behind;
+  var totalW=bx2-bx1;
+  var splitX=bx1 + (fF/(fF+bB))*totalW;
+  parts.push('<text x="'+bx1+'" y="'+(by-14)+'" font-size="11" letter-spacing="0.08em" fill="var(--ink-soft)" '+SANS+'>ACCEPTABLY SHARP ZONE</text>');
+  parts.push('<rect x="'+bx1+'" y="'+by+'" width="'+(splitX-bx1)+'" height="'+bh+'" rx="8" fill="var(--accent-tint)" stroke="var(--near)" stroke-width="1.5"/>');
+  parts.push('<rect x="'+splitX+'" y="'+by+'" width="'+(bx2-splitX)+'" height="'+bh+'" rx="8" fill="var(--sharp-tint)" stroke="var(--far)" stroke-width="1.5"/>');
+  parts.push('<line x1="'+splitX+'" y1="'+(by-6)+'" x2="'+splitX+'" y2="'+(by+bh+6)+'" stroke="var(--accent)" stroke-width="2.5"/>');
+  parts.push('<text x="'+splitX+'" y="'+(by+bh+20)+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--accent)" '+SANS+'>subject</text>');
+  parts.push('<text x="'+bx1+'" y="'+(by+bh+20)+'" text-anchor="start" font-size="12" font-weight="600" fill="var(--near)" '+SANS+'>near '+fmt(res.near)+'</text>');
+  var farTxt=(res.far===Infinity)?'far &#8734;':'far '+fmt(res.far);
+  parts.push('<text x="'+bx2+'" y="'+(by+bh+20)+'" text-anchor="end" font-size="12" font-weight="600" fill="var(--far)" '+SANS+'>'+farTxt+'</text>');
+  parts.push('<text x="'+((bx1+splitX)/2)+'" y="'+(by+22)+'" text-anchor="middle" font-size="11.5" fill="#7a4a12" '+SANS+'>'+fmtSmall(front)+' front</text>');
+  var behindTxt=(behind===Infinity)?'&#8734; behind':fmtSmall(behind)+' behind';
+  parts.push('<text x="'+((splitX+bx2)/2)+'" y="'+(by+22)+'" text-anchor="middle" font-size="11.5" fill="var(--far)" '+SANS+'>'+behindTxt+'</text>');
+
+  el("viz").innerHTML = parts.join("");
+}
+
+function recompute(){
+  var focal = parseFloat(el("focal").value);
+  var N = parseFloat(el("aperture").value);
+  var coc = cocFor(el("sensor").value);
+  var dist_in = parseFloat(el("dist").value);
+  var note = el("note");
+  if(!(focal>0)||!(N>0)||!(dist_in>0)){
+    ["r-total","r-hyper","r-near","r-far","r-front","r-behind","r-coc"].forEach(function(id){ el(id).textContent="—"; });
+    el("viz").innerHTML=""; note.classList.add("hidden"); return;
+  }
+  var subject_m = (state.unit==="ft")? dist_in/3.28084 : dist_in;
+  var res = computeDoF(focal, N, coc, subject_m);
+  var front = res.subject - res.near;
+  var behind = (res.far===Infinity)? Infinity : (res.far - res.subject);
+  var total = (res.far===Infinity)? Infinity : (res.far - res.near);
+  el("r-total").textContent = (total===Infinity)?"∞":fmtSmall(total);
+  el("r-hyper").textContent = fmt(res.hyper);
+  el("r-near").textContent  = fmt(res.near);
+  el("r-far").textContent   = (res.far===Infinity)?"∞ (at/beyond hyperfocal)":fmt(res.far);
+  el("r-front").textContent = fmtSmall(front);
+  el("r-behind").textContent= (behind===Infinity)?"∞":fmtSmall(behind);
+  el("r-coc").textContent   = coc.toFixed(3)+" mm";
+  if(res.far===Infinity){
+    note.classList.remove("hidden");
+    note.textContent = "Your subject is at or beyond the hyperfocal distance — everything from the near limit to infinity is acceptably sharp. Focus a touch closer to hold maximum detail on distant subjects.";
+  } else if(subject_m*1000 < focal*1.2){
+    note.classList.remove("hidden");
+    note.textContent = "Subject is extremely close to the lens — results approach macro territory where this thin-lens model loses accuracy.";
+  } else { note.classList.add("hidden"); }
+  draw(res);
+}
+
+["sensor","aperture","focal","dist"].forEach(function(id){
+  el(id).addEventListener("input", recompute);
+  el(id).addEventListener("change", recompute);
+});
+function setUnit(u){
+  if(state.unit===u) return;
+  var cur = parseFloat(el("dist").value);
+  state.unit=u;
+  el("u-m").setAttribute("aria-pressed", String(u==="m"));
+  el("u-ft").setAttribute("aria-pressed", String(u==="ft"));
+  if(cur>0){ el("dist").value = (u==="ft")? (cur*3.28084).toFixed(1) : (cur/3.28084).toFixed(2); }
+  recompute();
+}
+el("u-m").addEventListener("click", function(){ setUnit("m"); });
+el("u-ft").addEventListener("click", function(){ setUnit("ft"); });
+
+if(typeof module!=="undefined" && module.exports){ module.exports={computeDoF:computeDoF}; }
+recompute();
+</script>
+</body>
+</html>
